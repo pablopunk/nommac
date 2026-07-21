@@ -4,6 +4,8 @@
 <dict>
     <key>CFBundleDisplayName</key>
     <string>Nommac</string>
+    <key>CFBundleGetInfoString</key>
+    <string>Per-output software volume attenuation for macOS.</string>
     <key>CFBundleExecutable</key>
     <string>Nommac</string>
     <key>CFBundleIdentifier</key>

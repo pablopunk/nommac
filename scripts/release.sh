@@ -27,17 +27,6 @@ fi
 : "${APPLE_APP_SPECIFIC_PASSWORD:?Missing APPLE_APP_SPECIFIC_PASSWORD}"
 : "${APPLE_TEAM_ID:?Missing APPLE_TEAM_ID}"
 
-if [[ -n "$(git -C "$root" status --porcelain)" ]]; then
-  echo "Working tree must be clean before releasing." >&2
-  exit 1
-fi
-
-if [[ "$(tr -d '[:space:]' < "$root/VERSION")" != "$version" ]]; then
-  printf '%s\n' "$version" > "$root/VERSION"
-  git -C "$root" add VERSION
-  git -C "$root" commit -m "release: $tag"
-fi
-
 SIGN_IDENTITY="Developer ID Application: Pablo Varela (2TZ4Q825M7)" \
   CODESIGN_TIMESTAMP=secure \
   VERSION="$version" \
@@ -81,10 +70,4 @@ xcrun stapler validate "$disk_image"
 cd "$root/dist"
 shasum -a 256 "$(basename "$archive")" "$(basename "$disk_image")" > SHA256SUMS
 
-git -C "$root" tag "$tag"
-git -C "$root" push origin main
-git -C "$root" push origin "$tag"
-gh release create "$tag" "$archive" "$disk_image" "$root/dist/SHA256SUMS" \
-  --repo pablopunk/nommac \
-  --title "$tag" \
-  --generate-notes
+echo "Created signed and notarized release artifacts in $root/dist"

@@ -1,25 +1,40 @@
-# Nommac
+<p align="center">
+  <img src=".github/assets/nommac.png" width="160" alt="Nommac app icon">
+</p>
 
-A tiny native macOS attenuator with a separate volume profile for every output device.
+<h1 align="center">Nommac</h1>
 
-The Nommo exposes only about `-28 dB` of hardware volume range, making its first audible step too loud in a quiet room. Nommac adds up to `-48 dB` of software attenuation before audio reaches the speakers.
+<p align="center">
+  Quiet volume, remembered for every Mac audio output.
+</p>
 
-## What it does
+<p align="center">
+  <a href="https://github.com/pablopunk/nommac/actions/workflows/ci.yml"><img src="https://github.com/pablopunk/nommac/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/pablopunk/nommac/releases/latest"><img src="https://img.shields.io/github/v/release/pablopunk/nommac?display_name=tag" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/pablopunk/nommac" alt="MIT license"></a>
+</p>
 
-- Follows whichever output macOS has selected without changing it.
-- Remembers a separate attenuation value for each speaker, headphone, or audio device.
-- Leaves every newly seen output at `0 dB` bypass until you adjust it.
-- Provides one continuous attenuation slider in the menu bar.
-- Runs at login when enabled.
-- Processes audio in memory with no recording, analytics, or network access.
+Nommac is a tiny native menu-bar app that adds software attenuation after macOS system volume. It solves the awkward gap between muted and still-too-loud speakers without taking over output switching.
+
+Each output gets its own setting. Turn the Razer Nommo down for nighttime listening, switch to AirPods at an untouched `0 dB`, and Nommac restores both values automatically the next time each device appears.
+
+## Highlights
+
+- A single minimal slider with up to `-48 dB` of extra attenuation.
+- Independent profiles keyed to each output device.
+- Automatic tracking of the output already selected by macOS.
+- True `0 dB` bypass for every new device.
+- Optional launch at login.
+- No recording, analytics, network client, or audio stored on disk.
+- Universal Apple silicon and Intel build.
 
 ## Install
 
-Download the latest universal macOS build from [GitHub Releases](https://github.com/pablopunk/nommac/releases), open the DMG, and move Nommac to Applications.
+Download the latest signed and notarized build from [GitHub Releases](https://github.com/pablopunk/nommac/releases/latest), open the DMG, and drag Nommac to Applications.
 
-The first launch asks for **Screen & System Audio Recording** permission. macOS uses that permission for the Core Audio process tap that applies the gain adjustment.
+On first use, macOS asks for **Screen & System Audio Recording** permission. Nommac needs it for the Core Audio process tap that applies attenuation; it does not record or retain audio.
 
-Nommac requires macOS 15 or newer. Core Audio devices vary, so unusual Bluetooth, AirPlay, virtual, and protected-audio paths may not support processing.
+Nommac requires macOS 15 or newer. Most physical outputs should work, while Bluetooth, AirPlay, virtual devices, and protected-audio paths may vary with their Core Audio implementation.
 
 ## Development
 
@@ -28,22 +43,33 @@ make test
 make run
 ```
 
-`make build` creates a hardened, Developer ID-signed universal app at `build/Nommac.app`. Use `make ci-build` for an ad-hoc signed build.
+`make build` creates a hardened, Developer ID-signed universal app at `build/Nommac.app`. `make ci-build` produces an ad-hoc signed build without release credentials.
 
 ## Release
 
-Releases are built, signed, notarized, stapled, checksummed, and uploaded from a trusted Mac:
+Push a semantic version tag and GitHub Actions handles the rest:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The release workflow imports the signing certificate into an ephemeral keychain, builds both architectures, signs with hardened runtime, notarizes with Apple, staples the app and DMG, generates checksums, and publishes the artifacts to GitHub Releases.
+
+It expects the repository secrets `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`, `MACOS_CERT_P12_BASE64`, and `MACOS_CERT_PASSWORD`.
+
+To provision them with the GitHub CLI, fill in `.env.release` from `.env.release.example` and run `make setup-release`.
+
+For a local signed and notarized package, place Apple credentials in `.env.release` and run:
 
 ```sh
 make release VERSION=1.0.0
 ```
 
-The release script reads Apple notarization credentials from `.env.release`, falling back to `~/src/nvm/.env.release`, and uses the Developer ID Application certificate in Keychain.
-
 ## Privacy
 
-See [PRIVACY.md](PRIVACY.md). Nommac has no network client and never stores audio.
+Read the short [privacy policy](PRIVACY.md). Nommac processes audio only in memory and has no network client.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) © Pablo Varela

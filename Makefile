@@ -1,7 +1,7 @@
 SIGN_IDENTITY ?= Developer ID Application: Pablo Varela (2TZ4Q825M7)
 VERSION ?= $(shell tr -d '[:space:]' < VERSION)
 
-.PHONY: build ci-build test install run release clean
+.PHONY: build ci-build test install run release setup-release clean
 
 build:
 	SIGN_IDENTITY="$(SIGN_IDENTITY)" scripts/build-app.sh
@@ -22,6 +22,9 @@ run: install
 
 release:
 	scripts/release.sh "$(VERSION)"
+
+setup-release:
+	scripts/setup-release-secrets.sh
 
 clean:
 	swift package clean
