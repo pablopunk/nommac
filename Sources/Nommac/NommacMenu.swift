@@ -44,24 +44,24 @@ struct NommacMenu: View {
 
             Toggle("Launch at Login", isOn: launchAtLoginBinding)
 
-            Button {
-                NSApplication.shared.terminate(nil)
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "power")
-                    Text("Quit")
-                    Text("⌘Q")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+            HStack {
+                Button("Quit", systemImage: "power") {
+                    NSApplication.shared.terminate(nil)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 7)
-                .background(.quaternary.opacity(0.5))
-                .clipShape(.rect(cornerRadius: 7))
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .keyboardShortcut("Q", modifiers: .command)
+
+                Spacer()
+
+                Link(destination: URL(string: "https://github.com/pablopunk/nommac")!) {
+                    Image(systemName: "heart.fill")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .accessibilityLabel("Open Nommac on GitHub")
+                .help("Open Nommac on GitHub")
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .keyboardShortcut("Q", modifiers: .command)
         }
         .padding(14)
         .frame(width: 252)
