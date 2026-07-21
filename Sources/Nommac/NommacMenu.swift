@@ -44,10 +44,24 @@ struct NommacMenu: View {
 
             Toggle("Launch at Login", isOn: launchAtLoginBinding)
 
-            Button("Quit Nommac") {
+            Button {
                 NSApplication.shared.terminate(nil)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "power")
+                    Text("Quit")
+                    Text("⌘Q")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 7)
+                .background(.quaternary.opacity(0.5))
+                .clipShape(.rect(cornerRadius: 7))
             }
             .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .keyboardShortcut("Q", modifiers: .command)
         }
         .padding(14)
         .frame(width: 252)
