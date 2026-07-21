@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "NommoNight",
+    name: "Nommac",
     platforms: [.macOS(.v15)],
-    products: [.executable(name: "NommoNight", targets: ["NommoNight"])],
+    products: [.executable(name: "Nommac", targets: ["Nommac"])],
     targets: [
-        .executableTarget(name: "NommoNight", swiftSettings: [.swiftLanguageMode(.v5)]),
-        .testTarget(name: "NommoNightTests", dependencies: ["NommoNight"])
+        .executableTarget(name: "Nommac", swiftSettings: [.swiftLanguageMode(.v5)]),
+        .testTarget(name: "NommacTests", dependencies: ["Nommac"])
     ]
 )

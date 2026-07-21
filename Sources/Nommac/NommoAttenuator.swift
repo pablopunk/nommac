@@ -1,5 +1,6 @@
 import AudioToolbox
 import Foundation
+import Synchronization
 
 @MainActor
 final class NommoAttenuator {
@@ -7,8 +8,8 @@ final class NommoAttenuator {
     private var aggregateID = AudioObjectID(kAudioObjectUnknown)
     private var ioProcID: AudioDeviceIOProcID?
     private var tapDescription: CATapDescription?
-    private let queue = DispatchQueue(label: "NommoNight.Audio", qos: .userInitiated)
-    private nonisolated(unsafe) var targetGain: Float = 1
+    private let queue = DispatchQueue(label: "Nommac.Audio", qos: .userInitiated)
+    private let targetGainBits = Atomic<UInt32>(Float(1).bitPattern)
     private nonisolated(unsafe) var currentGain: Float = 1
 
     var isActive: Bool {
@@ -16,7 +17,7 @@ final class NommoAttenuator {
     }
 
     func setGain(decibels: Double) {
-        targetGain = amplitude(forDecibels: decibels)
+        targetGainBits.store(amplitude(forDecibels: decibels).bitPattern, ordering: .relaxed)
     }
 
     func activate(decibels: Double) throws {
@@ -25,8 +26,9 @@ final class NommoAttenuator {
             return
         }
 
-        targetGain = amplitude(forDecibels: decibels)
-        currentGain = targetGain
+        let initialGain = amplitude(forDecibels: decibels)
+        targetGainBits.store(initialGain.bitPattern, ordering: .relaxed)
+        currentGain = initialGain
 
         let device = try AudioObjectID.defaultOutputDevice()
         guard try device.uid() == nommoDeviceUID else {
@@ -48,8 +50,8 @@ final class NommoAttenuator {
         tapDescription = tap
 
         let description: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "Nommo Night",
-            kAudioAggregateDeviceUIDKey: "com.pablopunk.NommoNight.aggregate.\(UUID().uuidString)",
+            kAudioAggregateDeviceNameKey: "Nommac",
+            kAudioAggregateDeviceUIDKey: "com.pablopunk.nommac.aggregate.\(UUID().uuidString)",
             kAudioAggregateDeviceMainSubDeviceKey: nommoDeviceUID,
             kAudioAggregateDeviceClockDeviceKey: nommoDeviceUID,
             kAudioAggregateDeviceIsPrivateKey: true,
@@ -131,6 +133,7 @@ final class NommoAttenuator {
     ) {
         let inputs = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: input))
         let outputs = UnsafeMutableAudioBufferListPointer(output)
+        let targetGain = Float(bitPattern: targetGainBits.load(ordering: .relaxed))
 
         for outputIndex in outputs.indices {
             let inputIndex = inputs.count > outputs.count

@@ -1,5 +1,5 @@
 import Testing
-@testable import NommoNight
+@testable import Nommac
 
 @Test func decibelsConvertToAmplitude() {
     #expect(abs(amplitude(forDecibels: -6) - 0.501187) < 0.00001)
@@ -12,3 +12,8 @@ import Testing
     #expect(!shouldAttenuate(defaultOutputUID: nil))
 }
 
+@Test func gainIsClampedToSliderRange() {
+    #expect(clampedGainDecibels(-80) == -48)
+    #expect(clampedGainDecibels(-24) == -24)
+    #expect(clampedGainDecibels(8) == 0)
+}

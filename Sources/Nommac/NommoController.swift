@@ -16,7 +16,9 @@ final class NommoController {
 
     init() {
         let saved = UserDefaults.standard.object(forKey: "gainDecibels") as? Double
-        gainDecibels = saved ?? -24
+        let legacy = UserDefaults(suiteName: "com.pablopunk.NommoNight")?.object(forKey: "gainDecibels") as? Double
+        gainDecibels = clampedGainDecibels(saved ?? legacy ?? -24)
+        UserDefaults.standard.set(gainDecibels, forKey: "gainDecibels")
     }
 
     func start() {
@@ -35,9 +37,9 @@ final class NommoController {
     }
 
     func setGain(decibels: Double) {
-        gainDecibels = decibels
-        UserDefaults.standard.set(decibels, forKey: "gainDecibels")
-        attenuator.setGain(decibels: decibels)
+        gainDecibels = clampedGainDecibels(decibels)
+        UserDefaults.standard.set(gainDecibels, forKey: "gainDecibels")
+        attenuator.setGain(decibels: gainDecibels)
         onStateChange?()
     }
 
