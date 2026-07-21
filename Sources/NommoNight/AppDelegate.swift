@@ -8,20 +8,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusMenuItem = NSMenuItem(title: "Starting…", action: nil, keyEquivalent: "")
     private let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
     private var gainItems: [NSMenuItem] = []
-    private var refreshTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         configureMenu()
+        configureLaunchAtLoginOnce()
         controller.onStateChange = { [weak self] in self?.refreshMenu() }
         controller.start()
         refreshMenu()
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshMenu() }
-        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        refreshTimer?.invalidate()
         controller.stop()
     }
 
@@ -52,15 +48,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = menu
     }
 
+    private func configureLaunchAtLoginOnce() {
+        let key = "didConfigureLaunchAtLogin"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+
+        do {
+            if SMAppService.mainApp.status != .enabled {
+                try SMAppService.mainApp.register()
+            }
+            UserDefaults.standard.set(true, forKey: key)
+        } catch {
+            statusMenuItem.title = "Login item error — \(error.localizedDescription)"
+        }
+    }
+
     private func refreshMenu() {
         switch controller.state {
         case .inactive:
             statusMenuItem.title = "Idle — Nommo not selected"
             statusItem.button?.image = NSImage(systemSymbolName: "speaker.slash", accessibilityDescription: "Nommo Night idle")
         case .active:
-            let details = controller.diagnostics
-            statusMenuItem.title = "Active — \(Int(controller.gainDecibels)) dB — \(details)"
-            statusItem.button?.image = NSImage(systemSymbolName: "speaker.wave.1.fill", accessibilityDescription: "Nommo Night active \(details)")
+            statusMenuItem.title = "Active — \(Int(controller.gainDecibels)) dB"
+            statusItem.button?.image = NSImage(systemSymbolName: "speaker.wave.1.fill", accessibilityDescription: "Nommo Night active")
         case .failed(let message):
             statusMenuItem.title = "Error — \(message)"
             statusItem.button?.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: "Nommo Night error")
