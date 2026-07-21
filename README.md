@@ -5,13 +5,17 @@
 <h1 align="center">Nommac</h1>
 
 <p align="center">
-  Quiet volume, remembered for every Mac audio output.
+   Per-output software volume attenuation for macOS.
 </p>
 
 <p align="center">
   <a href="https://github.com/pablopunk/nommac/actions/workflows/ci.yml"><img src="https://github.com/pablopunk/nommac/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/pablopunk/nommac/releases/latest"><img src="https://img.shields.io/github/v/release/pablopunk/nommac?display_name=tag" alt="Latest release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/pablopunk/nommac" alt="MIT license"></a>
+</p>
+
+<p align="center">
+  <img width="298" height="192" alt="CleanShot 2026-07-22 at 00 54 19" src="https://github.com/user-attachments/assets/c0d2941b-2edd-44f3-b11b-8b08b46be47b" />
 </p>
 
 Nommac is a tiny native menu-bar app that adds software attenuation after macOS system volume. It solves the awkward gap between muted and still-too-loud speakers **(LIKE THE F\*\*\*ING RAZER NOMMO SPEAKERS THAT REQUIRE RAZER SYNAPSE TO MESS WITH EQ AND ARE NOT SUPPORTED ON MAC)** without taking over output switching.
