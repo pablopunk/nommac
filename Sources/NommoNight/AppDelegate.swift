@@ -1,7 +1,6 @@
 import AppKit
 import ServiceManagement
 
-@main
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let controller = NommoController()
@@ -86,4 +85,3 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshMenu()
     }
 }
-
