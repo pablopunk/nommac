@@ -4,14 +4,15 @@
 
 # Nommac
 
-A tiny native macOS attenuator for the Razer Nommo V2 X.
+A tiny native macOS attenuator with a separate volume profile for every output device.
 
 The Nommo exposes only about `-28 dB` of hardware volume range, making its first audible step too loud in a quiet room. Nommac adds up to `-48 dB` of software attenuation before audio reaches the speakers.
 
 ## What it does
 
-- Activates only while macOS has already selected **Razer Nommo V2 X**.
-- Never changes the system output, so AirPods and other devices keep using macOS switching.
+- Follows whichever output macOS has selected without changing it.
+- Remembers a separate attenuation value for each speaker, headphone, or audio device.
+- Leaves every newly seen output at `0 dB` bypass until you adjust it.
 - Provides one continuous attenuation slider in the menu bar.
 - Runs at login when enabled.
 - Processes audio in memory with no recording, analytics, or network access.
@@ -22,7 +23,7 @@ Download the latest universal macOS build from [GitHub Releases](https://github.
 
 The first launch asks for **Screen & System Audio Recording** permission. macOS uses that permission for the Core Audio process tap that applies the gain adjustment.
 
-Nommac requires macOS 15 or newer and currently targets the Razer Nommo V2 X USB device.
+Nommac requires macOS 15 or newer. Core Audio devices vary, so unusual Bluetooth, AirPlay, virtual, and protected-audio paths may not support processing.
 
 ## Development
 

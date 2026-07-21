@@ -8,7 +8,7 @@ struct NommacApp: App {
         MenuBarExtra {
             NommacMenu(model: appDelegate.model)
         } label: {
-            NommacStatusLabel(model: appDelegate.model)
+            NommacStatusLabel()
         }
         .menuBarExtraStyle(.window)
     }

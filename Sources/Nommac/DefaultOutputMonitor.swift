@@ -31,7 +31,7 @@ final class DefaultOutputMonitor {
         onChange = nil
     }
 
-    func currentUID() -> String? {
-        try? AudioObjectID.defaultOutputDevice().uid()
+    func currentOutput() throws -> AudioOutput {
+        try AudioObjectID.defaultOutputDevice().audioOutput()
     }
 }

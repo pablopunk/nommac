@@ -3,7 +3,7 @@ import Foundation
 import Synchronization
 
 @MainActor
-final class NommoAttenuator {
+final class OutputAttenuator {
     private var tapID = AudioObjectID(kAudioObjectUnknown)
     private var aggregateID = AudioObjectID(kAudioObjectUnknown)
     private var ioProcID: AudioDeviceIOProcID?
@@ -11,6 +11,7 @@ final class NommoAttenuator {
     private let queue = DispatchQueue(label: "Nommac.Audio", qos: .userInitiated)
     private let targetGainBits = Atomic<UInt32>(Float(1).bitPattern)
     private nonisolated(unsafe) var currentGain: Float = 1
+    private var activeOutput: AudioOutput?
 
     var isActive: Bool {
         tapID != kAudioObjectUnknown && aggregateID != kAudioObjectUnknown
@@ -20,24 +21,20 @@ final class NommoAttenuator {
         targetGainBits.store(amplitude(forDecibels: decibels).bitPattern, ordering: .relaxed)
     }
 
-    func activate(decibels: Double) throws {
-        guard !isActive else {
+    func activate(output: AudioOutput, decibels: Double) throws {
+        if isActive, activeOutput == output {
             setGain(decibels: decibels)
             return
         }
+        deactivate()
 
         let initialGain = amplitude(forDecibels: decibels)
         targetGainBits.store(initialGain.bitPattern, ordering: .relaxed)
         currentGain = initialGain
 
-        let device = try AudioObjectID.defaultOutputDevice()
-        guard try device.uid() == nommoDeviceUID else {
-            throw CoreAudioError(kAudioHardwareBadDeviceError)
-        }
-
-        let stream = try device.firstOutputStreamIndex()
+        let stream = try output.id.firstOutputStreamIndex()
         let process = try AudioObjectID.currentProcessObject()
-        let tap = CATapDescription(processes: [process], deviceUID: nommoDeviceUID, stream: stream)
+        let tap = CATapDescription(processes: [process], deviceUID: output.uid, stream: stream)
         tap.uuid = UUID()
         tap.isExclusive = true
         tap.muteBehavior = .mutedWhenTapped
@@ -48,17 +45,18 @@ final class NommoAttenuator {
         guard status == noErr else { throw CoreAudioError(status) }
         tapID = createdTap
         tapDescription = tap
+        activeOutput = output
 
         let description: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "Nommac",
+            kAudioAggregateDeviceNameKey: "Nommac – \(output.name)",
             kAudioAggregateDeviceUIDKey: "com.pablopunk.nommac.aggregate.\(UUID().uuidString)",
-            kAudioAggregateDeviceMainSubDeviceKey: nommoDeviceUID,
-            kAudioAggregateDeviceClockDeviceKey: nommoDeviceUID,
+            kAudioAggregateDeviceMainSubDeviceKey: output.uid,
+            kAudioAggregateDeviceClockDeviceKey: output.uid,
             kAudioAggregateDeviceIsPrivateKey: true,
             kAudioAggregateDeviceIsStackedKey: true,
             kAudioAggregateDeviceTapAutoStartKey: true,
             kAudioAggregateDeviceSubDeviceListKey: [[
-                kAudioSubDeviceUIDKey: nommoDeviceUID,
+                kAudioSubDeviceUIDKey: output.uid,
                 kAudioSubDeviceDriftCompensationKey: false
             ]],
             kAudioAggregateDeviceTapListKey: [[
@@ -116,6 +114,7 @@ final class NommoAttenuator {
         }
         tapID = kAudioObjectUnknown
         tapDescription = nil
+        activeOutput = nil
     }
 
     private func waitUntilReady() -> Bool {

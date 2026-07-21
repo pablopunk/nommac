@@ -1,6 +1,6 @@
 import Foundation
 
-let nommoDeviceUID = "AppleUSBAudioEngine:Actions:Razer Nommo V2 X:000000000000000:2"
+let legacyNommoDeviceUID = "AppleUSBAudioEngine:Actions:Razer Nommo V2 X:000000000000000:2"
 let gainDecibelRange = -48.0...0.0
 
 func amplitude(forDecibels decibels: Double) -> Float {
@@ -11,6 +11,6 @@ func clampedGainDecibels(_ decibels: Double) -> Double {
     min(max(decibels, gainDecibelRange.lowerBound), gainDecibelRange.upperBound)
 }
 
-func shouldAttenuate(defaultOutputUID: String?) -> Bool {
-    defaultOutputUID == nommoDeviceUID
+func shouldAttenuate(gainDecibels: Double) -> Bool {
+    gainDecibels < 0
 }

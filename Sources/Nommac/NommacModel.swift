@@ -5,26 +5,26 @@ import ServiceManagement
 @Observable
 @MainActor
 final class NommacModel {
-    private let controller = NommoController()
+    private let controller = OutputController()
     private(set) var gainDecibels: Double
-    private(set) var state: NommoController.State = .inactive
+    private(set) var state: OutputController.State = .bypassed
+    private(set) var outputName: String?
     private(set) var isLaunchAtLoginEnabled = false
 
     init() {
-        gainDecibels = controller.gainDecibels
+        gainDecibels = 0
     }
 
     var statusTitle: String {
         switch state {
-        case .inactive: "Waiting for Nommo"
-        case .active: "Razer Nommo V2 X"
+        case .bypassed, .active: outputName ?? "Waiting for output"
         case .failed: "Audio unavailable"
         }
     }
 
     var statusSymbol: String {
         switch state {
-        case .inactive: "speaker.slash"
+        case .bypassed: outputName == nil ? "speaker.slash" : "speaker.wave.2"
         case .active: "speaker.wave.1.fill"
         case .failed: "exclamationmark.triangle"
         }
@@ -78,6 +78,7 @@ final class NommacModel {
     private func synchronizeControllerState() {
         gainDecibels = controller.gainDecibels
         state = controller.state
+        outputName = controller.output?.name
     }
 
     private func synchronizeLaunchAtLoginState() {

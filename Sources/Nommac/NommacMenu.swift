@@ -2,10 +2,8 @@ import AppKit
 import SwiftUI
 
 struct NommacStatusLabel: View {
-    let model: NommacModel
-
     var body: some View {
-        Label("Nommac", systemImage: model.statusSymbol)
+        Label("Nommac", systemImage: "hifispeaker")
     }
 }
 
@@ -33,6 +31,7 @@ struct NommacMenu: View {
 
             HStack(spacing: 10) {
                 Slider(value: gainBinding, in: gainDecibelRange, step: 1)
+                    .disabled(model.outputName == nil)
                     .accessibilityLabel("Attenuation")
                     .accessibilityValue("\(Int(model.gainDecibels)) decibels")
 

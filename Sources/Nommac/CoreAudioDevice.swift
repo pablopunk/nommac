@@ -53,6 +53,25 @@ extension AudioObjectID {
         return value as String
     }
 
+    func name() throws -> String {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioObjectPropertyName,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var value: CFString = "" as CFString
+        var size = UInt32(MemoryLayout<CFString>.size)
+        let status = withUnsafeMutablePointer(to: &value) {
+            AudioObjectGetPropertyData(self, &address, 0, nil, &size, $0)
+        }
+        guard status == noErr else { throw CoreAudioError(status) }
+        return value as String
+    }
+
+    func audioOutput() throws -> AudioOutput {
+        AudioOutput(id: self, uid: try uid(), name: try name())
+    }
+
     func outputStreamCount() -> Int {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyStreams,
