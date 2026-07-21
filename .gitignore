@@ -1,4 +1,6 @@
 .build/
 build/
+dist/
 nommo-audio
-
+.DS_Store
+.env.release

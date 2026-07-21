@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: make test
+      - name: Build universal app
+        run: make ci-build
+      - name: Verify bundle
+        run: |
+          codesign --verify --deep --strict --verbose=2 build/Nommac.app
+          test "$(lipo -archs build/Nommac.app/Contents/MacOS/Nommac)" = "x86_64 arm64" || \
+            test "$(lipo -archs build/Nommac.app/Contents/MacOS/Nommac)" = "arm64 x86_64"
+          test "$(defaults read "$PWD/build/Nommac.app/Contents/Info" CFBundleIdentifier)" = "com.pablopunk.nommac"
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: Nommac-${{ github.sha }}
+          path: build/Nommac.app

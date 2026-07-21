@@ -10,6 +10,10 @@
     <string>com.pablopunk.nommac</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleIconFile</key>
+    <string>Nommac.icns</string>
     <key>CFBundleName</key>
     <string>Nommac</string>
     <key>CFBundlePackageType</key>
@@ -18,10 +22,20 @@
     <string>1.0.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
     <key>LSMinimumSystemVersion</key>
     <string>15.0</string>
+    <key>LSMultipleInstancesProhibited</key>
+    <true/>
     <key>LSUIElement</key>
     <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2026 Pablo Varela</string>
     <key>NSAudioCaptureUsageDescription</key>
     <string>Nommac attenuates system audio only while the Razer Nommo V2 X is the selected output.</string>
 </dict>
