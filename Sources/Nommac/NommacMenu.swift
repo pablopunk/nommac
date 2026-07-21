@@ -45,8 +45,15 @@ struct NommacMenu: View {
             Toggle("Launch at Login", isOn: launchAtLoginBinding)
 
             HStack {
-                Button("Quit", systemImage: "power") {
+                Button {
                     NSApplication.shared.terminate(nil)
+                } label: {
+                    HStack(alignment: .center, spacing: 4) {
+                        Image(systemName: "power")
+                            .accessibilityHidden(true)
+                        Text("Quit")
+                    }
+                    .font(.system(size: 11, weight: .medium))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
