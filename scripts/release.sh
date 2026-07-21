@@ -48,15 +48,22 @@ rm -f "$submission"
 
 xcrun stapler staple "$root/build/Nommac.app"
 xcrun stapler validate "$root/build/Nommac.app"
+EXPECTED_SDK_MAJOR=26 "$root/scripts/verify-app.sh" "$root/build/Nommac.app" "$version"
 
 archive="$root/dist/Nommac-$tag-macos-universal.zip"
 disk_image="$root/dist/Nommac-$tag-macos-universal.dmg"
 ditto -c -k --sequesterRsrc --keepParent "$root/build/Nommac.app" "$archive"
 
-staging="$(mktemp -d)"
-trap 'rm -rf "$staging"' EXIT
+package_workspace="$(mktemp -d)"
+trap 'rm -rf "$package_workspace"' EXIT
+staging="$package_workspace/dmg"
+verification="$package_workspace/verification"
+mkdir -p "$staging" "$verification"
 ditto "$root/build/Nommac.app" "$staging/Nommac.app"
 ln -s /Applications "$staging/Applications"
+ditto -x -k "$archive" "$verification"
+EXPECTED_SDK_MAJOR=26 "$root/scripts/verify-app.sh" "$staging/Nommac.app" "$version"
+EXPECTED_SDK_MAJOR=26 "$root/scripts/verify-app.sh" "$verification/Nommac.app" "$version"
 hdiutil create -quiet -volname Nommac -srcfolder "$staging" -ov -format UDZO "$disk_image"
 
 xcrun notarytool submit "$disk_image" \

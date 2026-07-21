@@ -30,7 +30,7 @@ struct NommacMenu: View {
                 .font(.headline)
 
             HStack(spacing: 10) {
-                Slider(value: gainBinding, in: gainDecibelRange, step: 1)
+                Slider(value: gainBinding, in: gainDecibelRange)
                     .disabled(model.outputName == nil)
                     .accessibilityLabel("Attenuation")
                     .accessibilityValue("\(Int(model.gainDecibels)) decibels")

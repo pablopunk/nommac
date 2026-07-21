@@ -9,6 +9,8 @@ timestamp="${CODESIGN_TIMESTAMP:-none}"
 app="$root/build/Nommac.app"
 executable="$app/Contents/MacOS/Nommac"
 icon_metadata="$root/build/Nommac-icon-info.plist"
+icon_output="$(mktemp -d)"
+trap 'rm -rf "$icon_output"' EXIT
 
 build_architecture() {
   local architecture="$1"
@@ -30,12 +32,14 @@ lipo -create \
   -output "$executable"
 ditto "$root/Resources/Info.plist" "$app/Contents/Info.plist"
 xcrun actool "$root/Resources/Nommac.icon" \
-  --compile "$app/Contents/Resources" \
+  --compile "$icon_output" \
   --platform macosx \
   --minimum-deployment-target 15.0 \
   --app-icon Nommac \
   --output-partial-info-plist "$icon_metadata" \
   --warnings --notices --errors >/dev/null
+install -m 0644 "$icon_output/Assets.car" "$app/Contents/Resources/Assets.car"
+install -m 0644 "$icon_output/Nommac.icns" "$app/Contents/Resources/Nommac.icns"
 
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$app/Contents/Info.plist"
@@ -53,11 +57,6 @@ else
 fi
 
 codesign "${codesign_arguments[@]}" "$app"
-codesign --verify --deep --strict --verbose=2 "$app"
-plutil -lint "$app/Contents/Info.plist"
-[[ -f "$app/Contents/Resources/Assets.car" ]]
-[[ -f "$app/Contents/Resources/Nommac.icns" ]]
-
+"$root/scripts/verify-app.sh" "$app" "$version"
 architectures="$(lipo -archs "$executable")"
-[[ "$architectures" == *arm64* && "$architectures" == *x86_64* ]]
 echo "Built Nommac $version ($build_number): $architectures"
