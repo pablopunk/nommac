@@ -14,6 +14,8 @@ final class NommoController {
     private(set) var state: State = .inactive
     var onStateChange: (() -> Void)?
 
+    var diagnostics: String { attenuator.diagnostics }
+
     init() {
         let saved = UserDefaults.standard.object(forKey: "gainDecibels") as? Double
         gainDecibels = saved ?? -24
@@ -62,4 +64,3 @@ final class NommoController {
         onStateChange?()
     }
 }
-

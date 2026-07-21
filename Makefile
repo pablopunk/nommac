@@ -1,4 +1,5 @@
 APP = build/Nommo Night.app
+SIGN_IDENTITY = Developer ID Application: Pablo Varela (2TZ4Q825M7)
 
 .PHONY: build test install run clean
 
@@ -8,7 +9,7 @@ build:
 	mkdir -p "$(APP)/Contents/MacOS"
 	ditto .build/release/NommoNight "$(APP)/Contents/MacOS/NommoNight"
 	ditto Resources/Info.plist "$(APP)/Contents/Info.plist"
-	codesign --force --deep --sign - "$(APP)"
+	codesign --force --deep --options runtime --timestamp=none --sign "$(SIGN_IDENTITY)" "$(APP)"
 
 test:
 	swift test
@@ -23,4 +24,3 @@ run: install
 clean:
 	swift package clean
 	rm -rf build
-

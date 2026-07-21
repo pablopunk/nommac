@@ -10,9 +10,21 @@ final class NommoAttenuator {
     private let queue = DispatchQueue(label: "NommoNight.Audio", qos: .userInitiated)
     private nonisolated(unsafe) var targetGain: Float = 1
     private nonisolated(unsafe) var currentGain: Float = 1
+    private nonisolated(unsafe) var callbackCount: UInt64 = 0
+    private nonisolated(unsafe) var maximumInputPeak: Float = 0
+    private nonisolated(unsafe) var inputBufferCount = 0
+    private nonisolated(unsafe) var inputByteCount = 0
+    private nonisolated(unsafe) var outputBufferCount = 0
+    private nonisolated(unsafe) var writableOutputBufferCount = 0
+    private nonisolated(unsafe) var outputByteCount = 0
 
     var isActive: Bool {
         tapID != kAudioObjectUnknown && aggregateID != kAudioObjectUnknown
+    }
+
+    var diagnostics: String {
+        let peak = maximumInputPeak > 0 ? String(format: "%.4f", maximumInputPeak) : "0"
+        return "cb=\(callbackCount) in=\(inputBufferCount)/\(inputByteCount)B peak=\(peak) out=\(writableOutputBufferCount)/\(outputBufferCount)/\(outputByteCount)B"
     }
 
     func setGain(decibels: Double) {
@@ -27,9 +39,19 @@ final class NommoAttenuator {
 
         targetGain = amplitude(forDecibels: decibels)
         currentGain = targetGain
+        callbackCount = 0
+        maximumInputPeak = 0
 
-        let tap = CATapDescription(stereoGlobalTapButExcludeProcesses: [])
+        let device = try AudioObjectID.defaultOutputDevice()
+        guard try device.uid() == nommoDeviceUID else {
+            throw CoreAudioError(kAudioHardwareBadDeviceError)
+        }
+
+        let stream = try device.firstOutputStreamIndex()
+        let process = try AudioObjectID.currentProcessObject()
+        let tap = CATapDescription(processes: [process], deviceUID: nommoDeviceUID, stream: stream)
         tap.uuid = UUID()
+        tap.isExclusive = true
         tap.muteBehavior = .mutedWhenTapped
         tap.isPrivate = true
 
@@ -123,6 +145,21 @@ final class NommoAttenuator {
     ) {
         let inputs = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: input))
         let outputs = UnsafeMutableAudioBufferListPointer(output)
+        callbackCount &+= 1
+        inputBufferCount = inputs.count
+        inputByteCount = inputs.reduce(0) { $0 + Int($1.mDataByteSize) }
+        outputBufferCount = outputs.count
+        writableOutputBufferCount = outputs.reduce(0) { $0 + ($1.mData == nil ? 0 : 1) }
+        outputByteCount = outputs.reduce(0) { $0 + Int($1.mDataByteSize) }
+
+        for buffer in inputs {
+            guard let data = buffer.mData else { continue }
+            let samples = data.assumingMemoryBound(to: Float.self)
+            let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.size
+            for index in 0..<count {
+                maximumInputPeak = max(maximumInputPeak, abs(samples[index]))
+            }
+        }
 
         for outputIndex in outputs.indices {
             let inputIndex = inputs.count > outputs.count
@@ -163,4 +200,3 @@ final class NommoAttenuator {
         }
     }
 }
-
