@@ -14,9 +14,9 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/pablopunk/nommac" alt="MIT license"></a>
 </p>
 
-Nommac is a tiny native menu-bar app that adds software attenuation after macOS system volume. It solves the awkward gap between muted and still-too-loud speakers without taking over output switching.
+Nommac is a tiny native menu-bar app that adds software attenuation after macOS system volume. It solves the awkward gap between muted and still-too-loud speakers **(LIKE THE F\*\*\*ING RAZER NOMMO SPEAKERS THAT REQUIRE RAZER SYNAPSE TO MESS WITH EQ AND ARE NOT SUPPORTED ON MAC)** without taking over output switching.
 
-Each output gets its own setting. Turn the Razer Nommo down for nighttime listening, switch to AirPods at an untouched `0 dB`, and Nommac restores both values automatically the next time each device appears.
+Each output gets its own setting. So it will remeber the volume you like for each speaker.
 
 ## Highlights
 
