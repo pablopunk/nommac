@@ -1,7 +1,7 @@
 SIGN_IDENTITY ?= Developer ID Application: Pablo Varela (2TZ4Q825M7)
 VERSION ?= $(shell tr -d '[:space:]' < VERSION)
 
-.PHONY: build ci-build test install run icon release clean
+.PHONY: build ci-build test install run release clean
 
 build:
 	SIGN_IDENTITY="$(SIGN_IDENTITY)" scripts/build-app.sh
@@ -19,9 +19,6 @@ install: build
 
 run: install
 	open "$(HOME)/Applications/Nommac.app"
-
-icon:
-	scripts/generate-icon.sh
 
 release:
 	scripts/release.sh "$(VERSION)"

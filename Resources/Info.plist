@@ -13,7 +13,9 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleIconFile</key>
-    <string>Nommac.icns</string>
+    <string>Nommac</string>
+    <key>CFBundleIconName</key>
+    <string>Nommac</string>
     <key>CFBundleName</key>
     <string>Nommac</string>
     <key>CFBundlePackageType</key>
@@ -37,6 +39,6 @@
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 Pablo Varela</string>
     <key>NSAudioCaptureUsageDescription</key>
-    <string>Nommac attenuates system audio only while the Razer Nommo V2 X is the selected output.</string>
+    <string>Nommac applies your saved attenuation profile to the selected audio output.</string>
 </dict>
 </plist>

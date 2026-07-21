@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="Resources/Nommac.svg" width="128" alt="Nommac icon">
-</p>
-
 # Nommac
 
 A tiny native macOS attenuator with a separate volume profile for every output device.
