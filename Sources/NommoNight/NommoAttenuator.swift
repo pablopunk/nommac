@@ -1,0 +1,166 @@
+import AudioToolbox
+import Foundation
+
+@MainActor
+final class NommoAttenuator {
+    private var tapID = AudioObjectID(kAudioObjectUnknown)
+    private var aggregateID = AudioObjectID(kAudioObjectUnknown)
+    private var ioProcID: AudioDeviceIOProcID?
+    private var tapDescription: CATapDescription?
+    private let queue = DispatchQueue(label: "NommoNight.Audio", qos: .userInitiated)
+    private nonisolated(unsafe) var targetGain: Float = 1
+    private nonisolated(unsafe) var currentGain: Float = 1
+
+    var isActive: Bool {
+        tapID != kAudioObjectUnknown && aggregateID != kAudioObjectUnknown
+    }
+
+    func setGain(decibels: Double) {
+        targetGain = amplitude(forDecibels: decibels)
+    }
+
+    func activate(decibels: Double) throws {
+        guard !isActive else {
+            setGain(decibels: decibels)
+            return
+        }
+
+        targetGain = amplitude(forDecibels: decibels)
+        currentGain = targetGain
+
+        let tap = CATapDescription(stereoGlobalTapButExcludeProcesses: [])
+        tap.uuid = UUID()
+        tap.muteBehavior = .mutedWhenTapped
+        tap.isPrivate = true
+
+        var createdTap = AudioObjectID(kAudioObjectUnknown)
+        var status = AudioHardwareCreateProcessTap(tap, &createdTap)
+        guard status == noErr else { throw CoreAudioError(status) }
+        tapID = createdTap
+        tapDescription = tap
+
+        let description: [String: Any] = [
+            kAudioAggregateDeviceNameKey: "Nommo Night",
+            kAudioAggregateDeviceUIDKey: "com.pablopunk.NommoNight.aggregate.\(UUID().uuidString)",
+            kAudioAggregateDeviceMainSubDeviceKey: nommoDeviceUID,
+            kAudioAggregateDeviceClockDeviceKey: nommoDeviceUID,
+            kAudioAggregateDeviceIsPrivateKey: true,
+            kAudioAggregateDeviceIsStackedKey: true,
+            kAudioAggregateDeviceTapAutoStartKey: true,
+            kAudioAggregateDeviceSubDeviceListKey: [[
+                kAudioSubDeviceUIDKey: nommoDeviceUID,
+                kAudioSubDeviceDriftCompensationKey: false
+            ]],
+            kAudioAggregateDeviceTapListKey: [[
+                kAudioSubTapDriftCompensationKey: true,
+                kAudioSubTapUIDKey: tap.uuid.uuidString
+            ]]
+        ]
+
+        var createdAggregate = AudioObjectID(kAudioObjectUnknown)
+        status = AudioHardwareCreateAggregateDevice(description as CFDictionary, &createdAggregate)
+        guard status == noErr else {
+            deactivate()
+            throw CoreAudioError(status)
+        }
+        aggregateID = createdAggregate
+
+        guard waitUntilReady() else {
+            deactivate()
+            throw CoreAudioError(kAudioHardwareUnspecifiedError)
+        }
+
+        status = AudioDeviceCreateIOProcIDWithBlock(&ioProcID, aggregateID, queue) { [weak self] _, input, _, output, _ in
+            guard let self else {
+                Self.clear(output)
+                return
+            }
+            self.process(input: input, output: output)
+        }
+        guard status == noErr else {
+            deactivate()
+            throw CoreAudioError(status)
+        }
+
+        status = AudioDeviceStart(aggregateID, ioProcID)
+        guard status == noErr else {
+            deactivate()
+            throw CoreAudioError(status)
+        }
+    }
+
+    func deactivate() {
+        if aggregateID != kAudioObjectUnknown, let ioProcID {
+            AudioDeviceStop(aggregateID, ioProcID)
+            AudioDeviceDestroyIOProcID(aggregateID, ioProcID)
+        }
+        ioProcID = nil
+
+        if aggregateID != kAudioObjectUnknown {
+            AudioHardwareDestroyAggregateDevice(aggregateID)
+        }
+        aggregateID = kAudioObjectUnknown
+
+        if tapID != kAudioObjectUnknown {
+            AudioHardwareDestroyProcessTap(tapID)
+        }
+        tapID = kAudioObjectUnknown
+        tapDescription = nil
+    }
+
+    private func waitUntilReady() -> Bool {
+        let deadline = Date().addingTimeInterval(2)
+        while Date() < deadline {
+            if aggregateID.outputStreamCount() > 0 { return true }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+        }
+        return false
+    }
+
+    private nonisolated func process(
+        input: UnsafePointer<AudioBufferList>,
+        output: UnsafeMutablePointer<AudioBufferList>
+    ) {
+        let inputs = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: input))
+        let outputs = UnsafeMutableAudioBufferListPointer(output)
+
+        for outputIndex in outputs.indices {
+            let inputIndex = inputs.count > outputs.count
+                ? inputs.count - outputs.count + outputIndex
+                : outputIndex
+            guard inputIndex < inputs.count,
+                  let inputData = inputs[inputIndex].mData,
+                  let outputData = outputs[outputIndex].mData else {
+                Self.clear(outputs[outputIndex])
+                continue
+            }
+
+            let inputSamples = inputData.assumingMemoryBound(to: Float.self)
+            let outputSamples = outputData.assumingMemoryBound(to: Float.self)
+            let inputCount = Int(inputs[inputIndex].mDataByteSize) / MemoryLayout<Float>.size
+            let outputCount = Int(outputs[outputIndex].mDataByteSize) / MemoryLayout<Float>.size
+            let count = min(inputCount, outputCount)
+
+            for sample in 0..<count {
+                currentGain += (targetGain - currentGain) * 0.0007
+                outputSamples[sample] = inputSamples[sample] * currentGain
+            }
+            if count < outputCount {
+                memset(outputSamples.advanced(by: count), 0, (outputCount - count) * MemoryLayout<Float>.size)
+            }
+        }
+    }
+
+    private nonisolated static func clear(_ list: UnsafeMutablePointer<AudioBufferList>) {
+        for buffer in UnsafeMutableAudioBufferListPointer(list) {
+            clear(buffer)
+        }
+    }
+
+    private nonisolated static func clear(_ buffer: AudioBuffer) {
+        if let data = buffer.mData {
+            memset(data, 0, Int(buffer.mDataByteSize))
+        }
+    }
+}
+
