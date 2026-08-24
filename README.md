@@ -14,6 +14,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/pablopunk/nommac" alt="MIT license"></a>
 </p>
 
+<p align="center">
+<img width="392" height="398" alt="screenshot(1)" src="https://github.com/user-attachments/assets/b11ea99d-a456-4e91-babd-e675411cbbb1" />
+</p>
+
+
 Razer's Nommo V2 X speakers hide their EQ, eco mode, and sleep timeout behind Razer Synapse — which does not exist for macOS. Nommac is a tiny native menu-bar app that talks to the speakers directly over USB, so you get every setting Synapse has without Windows, drivers, or bloat.
 
 ## Features
