@@ -5,7 +5,7 @@
     <key>CFBundleDisplayName</key>
     <string>Nommac</string>
     <key>CFBundleGetInfoString</key>
-    <string>Per-output software volume attenuation for macOS.</string>
+    <string>Menu-bar control panel for Razer Nommo V2 X speakers.</string>
     <key>CFBundleExecutable</key>
     <string>Nommac</string>
     <key>CFBundleIdentifier</key>
@@ -40,7 +40,5 @@
     <true/>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 Pablo Varela</string>
-    <key>NSAudioCaptureUsageDescription</key>
-    <string>Nommac applies your saved attenuation profile to the selected audio output.</string>
 </dict>
 </plist>

@@ -1,5 +1,5 @@
 # Privacy
 
-Nommac processes audio in memory on your Mac and does not record, store, or transmit it. The app has no analytics, network client, accounts, or telemetry.
+Nommac talks directly to Razer Nommo V2 X speakers over USB HID and nothing else. The app has no analytics, network client, accounts, or telemetry, and it never touches your audio stream.
 
-macOS requires Screen & System Audio Recording permission because Nommac uses a Core Audio process tap to attenuate the selected output stream. The tap is active only when that output has a saved value below 0 dB.
+No macOS privacy permissions are required.

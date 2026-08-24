@@ -5,7 +5,7 @@
 <h1 align="center">Nommac</h1>
 
 <p align="center">
-   Per-output software volume attenuation for macOS.
+   Razer Nommo V2 X control panel for macOS. No Synapse required.
 </p>
 
 <p align="center">
@@ -14,66 +14,51 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/pablopunk/nommac" alt="MIT license"></a>
 </p>
 
-<p align="center">
-  <img width="298" height="192" alt="CleanShot 2026-07-22 at 00 54 19" src="https://github.com/user-attachments/assets/c0d2941b-2edd-44f3-b11b-8b08b46be47b" />
-</p>
+Razer's Nommo V2 X speakers hide their EQ, eco mode, and sleep timeout behind Razer Synapse — which does not exist for macOS. Nommac is a tiny native menu-bar app that talks to the speakers directly over USB, so you get every setting Synapse has without Windows, drivers, or bloat.
 
-Nommac is a tiny native menu-bar app that adds software attenuation after macOS system volume. It solves the awkward gap between muted and still-too-loud speakers **(LIKE THE F\*\*\*ING RAZER NOMMO SPEAKERS THAT REQUIRE RAZER SYNAPSE TO MESS WITH EQ AND ARE NOT SUPPORTED ON MAC)** without taking over output switching.
+## Features
 
-Each output gets its own setting. So it will remeber the volume you like for each speaker.
-
-## Highlights
-
-- A single minimal slider with up to `-48 dB` of extra attenuation.
-- Independent profiles keyed to each output device.
-- Automatic tracking of the output already selected by macOS.
-- True `0 dB` bypass for every new device.
+- **10-band equalizer** (31 Hz – 16 kHz, ±12 dB) with Flat, Game, Movie, and Music presets.
+- **Eco mode toggle** and **auto-sleep timeout** (including *Never* — stop the speakers from sleeping mid-song).
+- **Master volume** control.
+- Settings are written to the speaker firmware, so they **persist across reboots and re-plugs**.
+- Detects the speakers connecting and disconnecting automatically.
 - Optional launch at login.
-- No recording, analytics, network client, or audio stored on disk.
-- Universal Apple silicon and Intel build.
+- No permissions, no recording, no analytics, no network. Universal Apple silicon and Intel build.
 
 ## Install
 
 Download the latest signed and notarized build from [GitHub Releases](https://github.com/pablopunk/nommac/releases/latest), open the DMG, and drag Nommac to Applications.
 
-On first use, macOS asks for **Screen & System Audio Recording** permission. Nommac needs it for the Core Audio process tap that applies attenuation; it does not record or retain audio.
+Or build from source:
 
-Nommac requires macOS 15 or newer. Most physical outputs should work, while Bluetooth, AirPlay, virtual devices, and protected-audio paths may vary with their Core Audio implementation.
+```sh
+make run
+```
+
+## How it works
+
+The Nommo V2 X exposes a vendor HID interface alongside its USB audio. Nommac speaks Razer's 90-byte feature-report protocol (report ID `0x07`, reverse engineered in [openrazer#2758](https://github.com/openrazer/openrazer/issues/2758)) via IOKit — the same commands Synapse sends on Windows:
+
+| Setting | Command |
+|---|---|
+| Eco mode | `0x07/0x08` |
+| Sleep timeout | `0x07/0x03` (big-endian seconds; firmware quirk: this write re-enables eco, so Nommac restores it) |
+| 10-band EQ | `0x08/0x04` (`0x0C` = 0 dB, one unit per dB) |
+| EQ preset | `0x08/0x02` (0–3; `0x10` = custom) |
+| Master volume | `0x08/0x06` (0–100) |
+
+Prefer a terminal? The same protocol is available as a CLI: [nommoctl](https://github.com/pablopunk/nommoctl).
 
 ## Development
 
 ```sh
-make test
-make run
+make test      # unit tests (protocol codec)
+make build     # signed .app bundle in build/
+make install   # copy to ~/Applications
+make release   # tag-driven signed + notarized release
 ```
-
-`make build` creates a hardened, Developer ID-signed universal app at `build/Nommac.app`. `make ci-build` produces an ad-hoc signed build without release credentials.
-
-## Release
-
-Push a semantic version tag and GitHub Actions handles the rest:
-
-```sh
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-The release workflow imports the signing certificate into an ephemeral keychain, builds both architectures, signs with hardened runtime, notarizes with Apple, staples the app and DMG, generates checksums, and publishes the artifacts to GitHub Releases.
-
-It expects the repository secrets `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`, `MACOS_CERT_P12_BASE64`, and `MACOS_CERT_PASSWORD`.
-
-To provision them with the GitHub CLI, fill in `.env.release` from `.env.release.example` and run `make setup-release`.
-
-For a local signed and notarized package, place Apple credentials in `.env.release` and run:
-
-```sh
-make release VERSION=1.0.0
-```
-
-## Privacy
-
-Read the short [privacy policy](PRIVACY.md). Nommac processes audio only in memory and has no network client.
 
 ## License
 
-[MIT](LICENSE) © Pablo Varela
+[MIT](LICENSE)

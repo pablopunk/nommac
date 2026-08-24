@@ -5,47 +5,85 @@ import ServiceManagement
 @Observable
 @MainActor
 final class NommacModel {
-    private let controller = OutputController()
-    private(set) var gainDecibels: Double
-    private(set) var state: OutputController.State = .bypassed
-    private(set) var outputName: String?
+    private let device = NommoDevice()
+
+    private(set) var isConnected = false
     private(set) var isLaunchAtLoginEnabled = false
+    private(set) var lastErrorDescription: String?
 
-    init() {
-        gainDecibels = 0
-    }
+    var ecoEnabled = false
+    var sleepTimeoutMinutes = 0
+    var volume = 0
+    var presetRawValue = NommoPreset.flat.rawValue
+    var bandGainsDecibels = [Int](repeating: 0, count: NommoDevice.bandCount)
 
-    var statusTitle: String {
-        switch state {
-        case .bypassed, .active: outputName ?? "Waiting for output"
-        case .failed: "Audio unavailable"
-        }
-    }
+    private var pendingVolumeWrite: DispatchWorkItem?
+    private var pendingBandsWrite: DispatchWorkItem?
 
-    var statusSymbol: String {
-        switch state {
-        case .bypassed: outputName == nil ? "speaker.slash" : "speaker.wave.2"
-        case .active: "speaker.wave.1.fill"
-        case .failed: "exclamationmark.triangle"
-        }
+    var isCustomPreset: Bool {
+        presetRawValue == NommoPreset.customRawValue
     }
 
     func start() {
         configureLaunchAtLoginOnce()
-        controller.onStateChange = { [weak self] in self?.synchronizeControllerState() }
-        controller.start()
-        synchronizeControllerState()
+        device.onConnectionChange = { [weak self] connected in
+            guard let self else { return }
+            isConnected = connected
+            if connected { refresh() }
+        }
     }
 
-    func stop() {
-        controller.stop()
+    func refresh() {
+        device.perform { transactor in
+            try transactor.readState()
+        } completion: { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success(let state):
+                isConnected = true
+                ecoEnabled = state.ecoEnabled
+                sleepTimeoutMinutes = state.sleepTimeoutSeconds / 60
+                volume = state.volume
+                presetRawValue = state.presetRawValue
+                bandGainsDecibels = state.bandGainsDecibels
+                lastErrorDescription = nil
+            case .failure(let error):
+                recordFailure(error)
+            }
+        }
     }
 
-    func setGain(_ decibels: Double) {
-        let value = clampedGainDecibels(decibels).rounded()
-        guard value != gainDecibels else { return }
-        gainDecibels = value
-        controller.setGain(decibels: value)
+    func setEco(_ enabled: Bool) {
+        ecoEnabled = enabled
+        write { try $0.setEco(enabled) }
+    }
+
+    func setSleepTimeout(minutes: Int) {
+        sleepTimeoutMinutes = minutes
+        write { try $0.setSleepTimeout(seconds: minutes * 60) }
+    }
+
+    func setVolume(_ newVolume: Int) {
+        volume = newVolume
+        debounce(&pendingVolumeWrite) { [self] in
+            write { try $0.setVolume(newVolume) }
+        }
+    }
+
+    func selectPreset(_ preset: NommoPreset) {
+        presetRawValue = preset.rawValue
+        bandGainsDecibels = [Int](repeating: 0, count: NommoDevice.bandCount)
+        write { try $0.setPreset(preset) }
+    }
+
+    func setBandGain(index: Int, decibels: Int) {
+        guard bandGainsDecibels.indices.contains(index) else { return }
+        bandGainsDecibels[index] = decibels
+        presetRawValue = NommoPreset.customRawValue
+        let gains = bandGainsDecibels
+        debounce(&pendingBandsWrite) { [self] in
+            write { try $0.setBands(gains) }
+        }
     }
 
     func setLaunchAtLogin(_ enabled: Bool) {
@@ -56,9 +94,32 @@ final class NommacModel {
                 try SMAppService.mainApp.unregister()
             }
         } catch {
-            state = .failed(error.localizedDescription)
+            lastErrorDescription = error.localizedDescription
         }
         synchronizeLaunchAtLoginState()
+    }
+
+    private func write(_ work: @escaping @Sendable (NommoDevice.Transactor) throws -> Void) {
+        device.perform(work) { [weak self] result in
+            if case .failure(let error) = result {
+                self?.recordFailure(error)
+            }
+        }
+    }
+
+    private func debounce(_ pending: inout DispatchWorkItem?, action: @escaping () -> Void) {
+        pending?.cancel()
+        let workItem = DispatchWorkItem(block: action)
+        pending = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: workItem)
+    }
+
+    private func recordFailure(_ error: Error) {
+        if case NommoDeviceError.disconnected = error {
+            isConnected = false
+            return
+        }
+        lastErrorDescription = String(describing: error)
     }
 
     private func configureLaunchAtLoginOnce() {
@@ -73,12 +134,6 @@ final class NommacModel {
         }
         UserDefaults.standard.set(true, forKey: key)
         synchronizeLaunchAtLoginState()
-    }
-
-    private func synchronizeControllerState() {
-        gainDecibels = controller.gainDecibels
-        state = controller.state
-        outputName = controller.output?.name
     }
 
     private func synchronizeLaunchAtLoginState() {
