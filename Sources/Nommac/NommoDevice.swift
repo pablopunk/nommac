@@ -171,6 +171,22 @@ final class NommoDevice: @unchecked Sendable {
         }
     }
 
+    /// Runs `work` synchronously on the HID queue, looking the device up
+    /// directly when the async matching callback has not fired yet (CLI use).
+    func performBlocking<T>(_ work: (Transactor) throws -> T) throws -> T {
+        try queue.sync {
+            var attemptsLeft = 10
+            while device == nil, attemptsLeft > 0 {
+                device = (IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice>)?.first
+                if device == nil {
+                    attemptsLeft -= 1
+                    usleep(50_000)
+                }
+            }
+            return try work(Transactor(device: self))
+        }
+    }
+
     /// Synchronous typed commands, only valid inside `perform`.
     struct Transactor {
         fileprivate let device: NommoDevice

@@ -1,6 +1,5 @@
 import SwiftUI
 
-@main
 struct NommacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 

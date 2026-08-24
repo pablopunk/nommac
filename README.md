@@ -48,7 +48,19 @@ The Nommo V2 X exposes a vendor HID interface alongside its USB audio. Nommac sp
 | EQ preset | `0x08/0x02` (0–3; `0x10` = custom) |
 | Master volume | `0x08/0x06` (0–100) |
 
-Prefer a terminal? The same protocol is available as a CLI: [nommoctl](https://github.com/pablopunk/nommoctl).
+## CLI
+
+The app binary doubles as a command-line tool. `make install` symlinks it to `~/.local/bin/nommac`:
+
+```sh
+nommac status                    # show all settings
+nommac eco on|off                # power saving (auto sleep)
+nommac sleep 30 | sleep off      # idle sleep timeout in minutes
+nommac eq show | eq flat         # current 10-band EQ / reset to 0 dB
+nommac eq 4 3 2 0 0 0 0 1 2 3    # set bands: 31 63 125 250 500 1k 2k 4k 8k 16k Hz
+nommac preset music              # flat|game|movie|music (resets bands)
+nommac volume 42                 # master volume 0-100
+```
 
 ## Development
 

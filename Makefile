@@ -16,6 +16,8 @@ install: build
 	mkdir -p "$(HOME)/Applications"
 	rm -rf "$(HOME)/Applications/Nommac.app"
 	ditto "build/Nommac.app" "$(HOME)/Applications/Nommac.app"
+	mkdir -p "$(HOME)/.local/bin"
+	ln -sf "$(HOME)/Applications/Nommac.app/Contents/MacOS/Nommac" "$(HOME)/.local/bin/nommac"
 
 run: install
 	open "$(HOME)/Applications/Nommac.app"
