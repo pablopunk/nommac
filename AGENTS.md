@@ -3,7 +3,8 @@
 ## Product principles
 
 - Nommac is a small native macOS menu-bar control panel for Razer Nommo V2 X speakers (USB 1532:055E).
-- It replaces Razer Synapse on macOS: volume, 10-band EQ, presets, eco mode, and auto-sleep timeout over USB HID feature reports.
+- It replaces Razer Synapse on macOS: 10-band EQ, presets, eco mode, and auto-sleep timeout over USB HID feature reports.
+- Never expose the firmware master volume (`0x08/0x06`): it is the USB audio volume, macOS controls it natively, and writing it moves the system volume of whatever output is currently active (e.g. AirPods).
 - The same binary is also the CLI (`nommac status`, `nommac eq …`): arguments or a TTY select `NommacCLI`, otherwise the menu-bar UI starts. Keep the UI and CLI backed by the same `NommoDevice` commands.
 - Settings live in the speaker firmware, not the app. Always read state from the device; never cache it as the source of truth.
 - The protocol is documented in `Sources/Nommac/RazerReport.swift` and https://github.com/openrazer/openrazer/issues/2758.

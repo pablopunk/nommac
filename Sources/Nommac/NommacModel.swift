@@ -13,11 +13,9 @@ final class NommacModel {
 
     var ecoEnabled = false
     var sleepTimeoutMinutes = 0
-    var volume = 0
     var presetRawValue = NommoPreset.flat.rawValue
     var bandGainsDecibels = [Int](repeating: 0, count: NommoDevice.bandCount)
 
-    private var pendingVolumeWrite: DispatchWorkItem?
     private var pendingBandsWrite: DispatchWorkItem?
 
     var isCustomPreset: Bool {
@@ -43,7 +41,6 @@ final class NommacModel {
                 isConnected = true
                 ecoEnabled = state.ecoEnabled
                 sleepTimeoutMinutes = state.sleepTimeoutSeconds / 60
-                volume = state.volume
                 presetRawValue = state.presetRawValue
                 bandGainsDecibels = state.bandGainsDecibels
                 lastErrorDescription = nil
@@ -61,13 +58,6 @@ final class NommacModel {
     func setSleepTimeout(minutes: Int) {
         sleepTimeoutMinutes = minutes
         write { try $0.setSleepTimeout(seconds: minutes * 60) }
-    }
-
-    func setVolume(_ newVolume: Int) {
-        volume = newVolume
-        debounce(&pendingVolumeWrite) { [self] in
-            write { try $0.setVolume(newVolume) }
-        }
     }
 
     func selectPreset(_ preset: NommoPreset) {

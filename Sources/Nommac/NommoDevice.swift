@@ -4,7 +4,6 @@ import IOKit.hid
 struct NommoState: Equatable {
     var ecoEnabled: Bool
     var sleepTimeoutSeconds: Int
-    var volume: Int
     var presetRawValue: UInt8
     var bandGainsDecibels: [Int]
 }
@@ -199,7 +198,6 @@ final class NommoDevice: @unchecked Sendable {
             NommoState(
                 ecoEnabled: try readEco(),
                 sleepTimeoutSeconds: try readSleepTimeout(),
-                volume: Int(try run(0x08, 0x86, [0, 0])[1]),
                 presetRawValue: try run(0x08, 0x82, [0, 0])[1],
                 bandGainsDecibels: try readBands()
             )
@@ -224,10 +222,6 @@ final class NommoDevice: @unchecked Sendable {
             let eco = try readEco()
             _ = try run(0x07, 0x03, [UInt8(seconds >> 8 & 0xFF), UInt8(seconds & 0xFF)])
             try setEco(eco)
-        }
-
-        func setVolume(_ volume: Int) throws {
-            _ = try run(0x08, 0x06, [0, UInt8(clamping: volume)])
         }
 
         func setPreset(_ preset: NommoPreset) throws {

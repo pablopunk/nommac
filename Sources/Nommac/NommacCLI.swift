@@ -15,7 +15,6 @@ enum NommacCLI {
                                  min puts every band at the -12 dB floor
       preset [flat|game|movie|music|0-3]
                                  get/set EQ preset (resets bands to flat)
-      volume [0-100]             get/set master volume
 
     run with no arguments outside a terminal to start the menu-bar app
     """
@@ -50,7 +49,6 @@ enum NommacCLI {
             case "sleep": try runSleep(transactor, arguments)
             case "eq": try runEQ(transactor, arguments)
             case "preset": try runPreset(transactor, arguments)
-            case "volume": try runVolume(transactor, arguments)
             default: throw CLIError(message: "unknown command '\(command)'\n\n\(usage)")
             }
         }
@@ -62,7 +60,6 @@ enum NommacCLI {
             ? "\(state.sleepTimeoutSeconds / 60) min" : "disabled"
         print("eco (power saving): \(state.ecoEnabled ? "on" : "off")")
         print("sleep timeout:      \(timeout)")
-        print("volume:             \(state.volume)")
         print("eq preset:          \(presetName(state.presetRawValue)) (\(state.presetRawValue))")
         print("eq bands (dB):")
         print("  " + NommoDevice.bandLabels.map { pad($0) }.joined(separator: "  "))
@@ -126,18 +123,6 @@ enum NommacCLI {
         }
         try transactor.setPreset(preset)
         print("preset set to \(preset.title.lowercased()) (\(preset.rawValue))")
-    }
-
-    private static func runVolume(_ transactor: NommoDevice.Transactor, _ arguments: [String]) throws {
-        guard let argument = arguments.first else {
-            print(try transactor.readState().volume)
-            return
-        }
-        guard let volume = Int(argument), (0 ... 100).contains(volume) else {
-            throw CLIError(message: "volume must be 0-100")
-        }
-        try transactor.setVolume(volume)
-        print("volume set to \(volume)")
     }
 
     static func parseGains(_ arguments: [String]) throws -> [Int] {

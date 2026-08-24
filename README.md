@@ -20,7 +20,6 @@ Razer's Nommo V2 X speakers hide their EQ, eco mode, and sleep timeout behind Ra
 
 - **10-band equalizer** (31 Hz – 16 kHz, ±12 dB) with Flat, Game, Movie, and Music presets.
 - **Eco mode toggle** and **auto-sleep timeout** (including *Never* — stop the speakers from sleeping mid-song).
-- **Master volume** control.
 - Settings are written to the speaker firmware, so they **persist across reboots and re-plugs**.
 - Detects the speakers connecting and disconnecting automatically.
 - Optional launch at login.
@@ -46,7 +45,7 @@ The Nommo V2 X exposes a vendor HID interface alongside its USB audio. Nommac sp
 | Sleep timeout | `0x07/0x03` (big-endian seconds; firmware quirk: this write re-enables eco, so Nommac restores it) |
 | 10-band EQ | `0x08/0x04` (`0x0C` = 0 dB, one unit per dB) |
 | EQ preset | `0x08/0x02` (0–3; `0x10` = custom) |
-| Master volume | `0x08/0x06` (0–100) |
+| Master volume | `0x08/0x06` — not exposed: it is the USB audio volume, which macOS already controls (and writing it moves the system volume of whatever output is active) |
 
 ## CLI
 
@@ -62,7 +61,6 @@ nommac eq show | eq flat         # current 10-band EQ / reset to 0 dB
 nommac eq min                    # every band at the -12 dB floor (Minimum)
 nommac eq 4 3 2 0 0 0 0 1 2 3    # set bands: 31 63 125 250 500 1k 2k 4k 8k 16k Hz
 nommac preset music              # flat|game|movie|music (resets bands)
-nommac volume 42                 # master volume 0-100
 ```
 
 ## Development

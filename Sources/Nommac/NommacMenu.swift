@@ -15,8 +15,6 @@ struct NommacMenu: View {
             header
 
             if model.isConnected {
-                volumeSlider
-                Divider()
                 equalizer
                 Divider()
                 powerControls
@@ -57,29 +55,6 @@ struct NommacMenu: View {
             .font(.callout)
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, minHeight: 48)
-    }
-
-    private var volumeSlider: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "speaker.wave.2.fill")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-
-            Slider(
-                value: Binding(
-                    get: { Double(model.volume) },
-                    set: { model.setVolume(Int($0)) }
-                ),
-                in: 0 ... 100
-            )
-            .tint(.razerGreen)
-            .accessibilityLabel("Volume")
-            .accessibilityValue("\(model.volume) percent")
-
-            Text("\(model.volume)")
-                .font(.caption.monospacedDigit())
-                .frame(width: 28, alignment: .trailing)
-        }
     }
 
     private var equalizer: some View {
