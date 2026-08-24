@@ -120,12 +120,12 @@ struct NommacMenu: View {
             }
             Divider()
             Button {
-                model.selectNightPreset()
+                model.selectMinimumPreset()
             } label: {
-                if model.isNightPreset {
-                    Label("Night", systemImage: "checkmark")
+                if model.isMinimumPreset {
+                    Label("Minimum", systemImage: "checkmark")
                 } else {
-                    Text("Night")
+                    Text("Minimum")
                 }
             }
         } label: {
@@ -139,7 +139,7 @@ struct NommacMenu: View {
     }
 
     private var currentPresetTitle: String {
-        if model.isNightPreset { return "Night" }
+        if model.isMinimumPreset { return "Minimum" }
         if model.isCustomPreset { return "Custom" }
         return NommoPreset(rawValue: model.presetRawValue)?.title ?? "Preset \(model.presetRawValue)"
     }

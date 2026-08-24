@@ -59,7 +59,7 @@ nommac status                    # show all settings
 nommac eco on|off                # power saving (auto sleep)
 nommac sleep 30 | sleep off      # idle sleep timeout in minutes
 nommac eq show | eq flat         # current 10-band EQ / reset to 0 dB
-nommac eq min                    # every band at the -12 dB floor (Night)
+nommac eq min                    # every band at the -12 dB floor (Minimum)
 nommac eq 4 3 2 0 0 0 0 1 2 3    # set bands: 31 63 125 250 500 1k 2k 4k 8k 16k Hz
 nommac preset music              # flat|game|movie|music (resets bands)
 nommac volume 42                 # master volume 0-100
