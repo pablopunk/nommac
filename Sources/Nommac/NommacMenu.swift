@@ -111,11 +111,21 @@ struct NommacMenu: View {
                 Button {
                     model.selectPreset(preset)
                 } label: {
-                    if model.presetRawValue == preset.rawValue {
+                    if !model.isCustomPreset, model.presetRawValue == preset.rawValue {
                         Label(preset.title, systemImage: "checkmark")
                     } else {
                         Text(preset.title)
                     }
+                }
+            }
+            Divider()
+            Button {
+                model.selectNightPreset()
+            } label: {
+                if model.isNightPreset {
+                    Label("Night", systemImage: "checkmark")
+                } else {
+                    Text("Night")
                 }
             }
         } label: {
@@ -129,19 +139,25 @@ struct NommacMenu: View {
     }
 
     private var currentPresetTitle: String {
+        if model.isNightPreset { return "Night" }
         if model.isCustomPreset { return "Custom" }
         return NommoPreset(rawValue: model.presetRawValue)?.title ?? "Preset \(model.presetRawValue)"
     }
 
     private var powerControls: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Toggle("Eco Mode", isOn: Binding(
-                get: { model.ecoEnabled },
-                set: model.setEco
-            ))
-            .toggleStyle(.switch)
-            .controlSize(.mini)
-            .tint(.razerGreen)
+            HStack {
+                Text("Eco Mode")
+                Spacer()
+                Toggle("Eco Mode", isOn: Binding(
+                    get: { model.ecoEnabled },
+                    set: model.setEco
+                ))
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                .tint(.razerGreen)
+                .labelsHidden()
+            }
 
             HStack {
                 Text("Auto Sleep")

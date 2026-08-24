@@ -10,7 +10,9 @@ enum NommacCLI {
       status                     show all settings
       eco [on|off]               get/set power saving (auto sleep)
       sleep [<minutes>|off]      get/set idle sleep timeout
-      eq [show|flat|<g1..g10>]   get/set 10-band EQ gains in dB (-12..12)
+      eq [show|flat|min|<g1..g10>]
+                                 get/set 10-band EQ gains in dB (-12..12)
+                                 min puts every band at the -12 dB floor
       preset [flat|game|movie|music|0-3]
                                  get/set EQ preset (resets bands to flat)
       volume [0-100]             get/set master volume
@@ -101,10 +103,10 @@ enum NommacCLI {
             return
         }
         let gains: [Int]
-        if arguments == ["flat"] {
-            gains = [Int](repeating: 0, count: NommoDevice.bandCount)
-        } else {
-            gains = try parseGains(arguments)
+        switch arguments {
+        case ["flat"]: gains = [Int](repeating: 0, count: NommoDevice.bandCount)
+        case ["min"]: gains = [Int](repeating: -12, count: NommoDevice.bandCount)
+        default: gains = try parseGains(arguments)
         }
         try transactor.setBands(gains)
         print("eq set: " + gains.map(formatGain).joined(separator: " "))

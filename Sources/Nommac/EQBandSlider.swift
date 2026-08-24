@@ -15,6 +15,8 @@ struct EQBandSlider: View {
     private let trackWidth: CGFloat = 6
     private let trackHeight: CGFloat = 96
 
+    @State private var lastClickDate = Date.distantPast
+
     var body: some View {
         VStack(spacing: 5) {
             track
@@ -23,8 +25,8 @@ struct EQBandSlider: View {
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { onChange(gain(atY: $0.location.y)) }
+                        .onEnded(handleClickEnd)
                 )
-                .onTapGesture(count: 2) { onChange(0) }
 
             Text(label)
                 .font(.system(size: 8.5, weight: .medium))
@@ -77,6 +79,21 @@ struct EQBandSlider: View {
     private func gain(atY y: CGFloat) -> Int {
         let decibels = Int(((trackHeight / 2 - y) / unitHeight).rounded())
         return decibels.clamped(to: range)
+    }
+
+    /// DragGesture(minimumDistance: 0) swallows tap gestures, so double-click
+    /// to reset the band is detected from two quick stationary releases.
+    private func handleClickEnd(_ value: DragGesture.Value) {
+        guard abs(value.translation.height) < 3, abs(value.translation.width) < 3 else {
+            lastClickDate = .distantPast
+            return
+        }
+        if Date().timeIntervalSince(lastClickDate) < 0.4 {
+            onChange(0)
+            lastClickDate = .distantPast
+        } else {
+            lastClickDate = Date()
+        }
     }
 }
 

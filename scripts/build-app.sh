@@ -40,6 +40,7 @@ xcrun actool "$root/Resources/Nommac.icon" \
   --warnings --notices --errors >/dev/null
 install -m 0644 "$icon_output/Assets.car" "$app/Contents/Resources/Assets.car"
 install -m 0644 "$icon_output/Nommac.icns" "$app/Contents/Resources/Nommac.icns"
+ln -sfh ../MacOS/Nommac "$app/Contents/Resources/nommac"
 
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$app/Contents/Info.plist"

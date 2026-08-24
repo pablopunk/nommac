@@ -50,13 +50,16 @@ The Nommo V2 X exposes a vendor HID interface alongside its USB audio. Nommac sp
 
 ## CLI
 
-The app binary doubles as a command-line tool. `make install` symlinks it to `~/.local/bin/nommac`:
+The app is the only thing you install — but its binary doubles as a command-line tool, shipped inside the bundle:
 
 ```sh
+alias nommac="/Applications/Nommac.app/Contents/Resources/nommac"
+
 nommac status                    # show all settings
 nommac eco on|off                # power saving (auto sleep)
 nommac sleep 30 | sleep off      # idle sleep timeout in minutes
 nommac eq show | eq flat         # current 10-band EQ / reset to 0 dB
+nommac eq min                    # every band at the -12 dB floor (Night)
 nommac eq 4 3 2 0 0 0 0 1 2 3    # set bands: 31 63 125 250 500 1k 2k 4k 8k 16k Hz
 nommac preset music              # flat|game|movie|music (resets bands)
 nommac volume 42                 # master volume 0-100

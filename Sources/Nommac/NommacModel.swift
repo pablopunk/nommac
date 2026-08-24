@@ -76,6 +76,18 @@ final class NommacModel {
         write { try $0.setPreset(preset) }
     }
 
+    /// App-side preset: every band at the −12 dB floor for late-night volume.
+    func selectNightPreset() {
+        presetRawValue = NommoPreset.customRawValue
+        let gains = [Int](repeating: -12, count: NommoDevice.bandCount)
+        bandGainsDecibels = gains
+        write { try $0.setBands(gains) }
+    }
+
+    var isNightPreset: Bool {
+        isCustomPreset && bandGainsDecibels.allSatisfy { $0 == -12 }
+    }
+
     func setBandGain(index: Int, decibels: Int) {
         guard bandGainsDecibels.indices.contains(index) else { return }
         bandGainsDecibels[index] = decibels
