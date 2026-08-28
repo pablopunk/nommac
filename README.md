@@ -23,7 +23,7 @@ Razer's Nommo V2 X speakers hide their EQ, eco mode, and sleep timeout behind Ra
 
 ## Features
 
-- **10-band equalizer** (31 Hz – 16 kHz, ±12 dB) with Flat, Game, Movie, and Music presets.
+- **10-band equalizer** (31 Hz – 16 kHz, ±12 dB) with Flat, Game, Movie, and Music presets. Cmd+drag any band to shift the whole curve at once; double-click a band to reset it.
 - **Eco mode toggle** and **auto-sleep timeout** (including *Never* — stop the speakers from sleeping mid-song).
 - Settings are written to the speaker firmware, so they **persist across reboots and re-plugs**.
 - Detects the speakers connecting and disconnecting automatically.

@@ -17,6 +17,7 @@ final class NommacModel {
     var bandGainsDecibels = [Int](repeating: 0, count: NommoDevice.bandCount)
 
     private var pendingBandsWrite: DispatchWorkItem?
+    private var groupDragBaseline: [Int]?
 
     var isCustomPreset: Bool {
         presetRawValue == NommoPreset.customRawValue
@@ -86,6 +87,27 @@ final class NommacModel {
         debounce(&pendingBandsWrite) { [self] in
             write { try $0.setBands(gains) }
         }
+    }
+
+    /// Cmd+drag on any band: shifts every band by the same delta from where
+    /// the drag started, each clamped independently so bands already at the
+    /// EQ floor/ceiling simply stop rather than dragging the rest off course.
+    func beginGroupEQDrag() {
+        groupDragBaseline = bandGainsDecibels
+    }
+
+    func applyGroupEQDrag(deltaDecibels: Int) {
+        guard let groupDragBaseline else { return }
+        presetRawValue = NommoPreset.customRawValue
+        let gains = groupDragBaseline.map { ($0 + deltaDecibels).clamped(to: -12 ... 12) }
+        bandGainsDecibels = gains
+        debounce(&pendingBandsWrite) { [self] in
+            write { try $0.setBands(gains) }
+        }
+    }
+
+    func endGroupEQDrag() {
+        groupDragBaseline = nil
     }
 
     func setLaunchAtLogin(_ enabled: Bool) {

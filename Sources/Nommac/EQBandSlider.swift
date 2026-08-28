@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 extension Color {
@@ -5,17 +6,22 @@ extension Color {
 }
 
 /// Vertical gain bar for one EQ band. Fills from the 0 dB center line,
-/// drag to set, double-tap to reset the band.
+/// drag to set, double-tap to reset the band, cmd+drag to shift every band
+/// together by the same amount.
 struct EQBandSlider: View {
     let label: String
     let gainDecibels: Int
     let range: ClosedRange<Int>
     let onChange: (Int) -> Void
+    let onGroupDragBegin: () -> Void
+    let onGroupDrag: (Int) -> Void
+    let onGroupDragEnd: () -> Void
 
     private let trackWidth: CGFloat = 6
     private let trackHeight: CGFloat = 96
 
     @State private var lastClickDate = Date.distantPast
+    @State private var isGroupDrag: Bool?
 
     var body: some View {
         VStack(spacing: 5) {
@@ -24,8 +30,8 @@ struct EQBandSlider: View {
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 0)
-                        .onChanged { onChange(gain(atY: $0.location.y)) }
-                        .onEnded(handleClickEnd)
+                        .onChanged(handleDragChange)
+                        .onEnded(handleDragEnd)
                 )
 
             Text(label)
@@ -79,6 +85,31 @@ struct EQBandSlider: View {
     private func gain(atY y: CGFloat) -> Int {
         let decibels = Int(((trackHeight / 2 - y) / unitHeight).rounded())
         return decibels.clamped(to: range)
+    }
+
+    /// Whether this is a plain drag or a cmd+drag is decided once, on the
+    /// gesture's first (near-zero-translation) frame, and held for its
+    /// duration so a modifier change mid-drag can't switch modes underneath
+    /// the user's finger.
+    private func handleDragChange(_ value: DragGesture.Value) {
+        if isGroupDrag == nil {
+            isGroupDrag = NSEvent.modifierFlags.contains(.command)
+            if isGroupDrag == true { onGroupDragBegin() }
+        }
+        if isGroupDrag == true {
+            onGroupDrag(Int((-value.translation.height / unitHeight).rounded()))
+        } else {
+            onChange(gain(atY: value.location.y))
+        }
+    }
+
+    private func handleDragEnd(_ value: DragGesture.Value) {
+        if isGroupDrag == true {
+            onGroupDragEnd()
+        } else {
+            handleClickEnd(value)
+        }
+        isGroupDrag = nil
     }
 
     /// DragGesture(minimumDistance: 0) swallows tap gestures, so double-click

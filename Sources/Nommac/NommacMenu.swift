@@ -72,7 +72,10 @@ struct NommacMenu: View {
                         label: NommoDevice.bandLabels[index],
                         gainDecibels: model.bandGainsDecibels[index],
                         range: -12 ... 12,
-                        onChange: { model.setBandGain(index: index, decibels: $0) }
+                        onChange: { model.setBandGain(index: index, decibels: $0) },
+                        onGroupDragBegin: { model.beginGroupEQDrag() },
+                        onGroupDrag: { model.applyGroupEQDrag(deltaDecibels: $0) },
+                        onGroupDragEnd: { model.endGroupEQDrag() }
                     )
                     .frame(maxWidth: .infinity)
                 }
