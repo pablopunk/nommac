@@ -22,3 +22,13 @@ import Testing
     #expect(!(try NommacCLI.parseOnOff("off")))
     #expect(throws: NommacCLI.CLIError.self) { _ = try NommacCLI.parseOnOff("maybe") }
 }
+
+@Test func onlyBareEQForgetSkipsTheDevice() {
+    #expect(NommacCLI.isForgetCommand("eq", ["forget"]))
+    // Anything else must take the normal path, so a typo cannot silently
+    // clear the stored curve instead of being reported as an error.
+    #expect(!NommacCLI.isForgetCommand("eq", ["forget", "3"]))
+    #expect(!NommacCLI.isForgetCommand("eq", ["show"]))
+    #expect(!NommacCLI.isForgetCommand("eq", []))
+    #expect(!NommacCLI.isForgetCommand("preset", ["forget"]))
+}

@@ -28,6 +28,39 @@ enum NommoPreset: UInt8, CaseIterable, Identifiable {
     static let customRawValue: UInt8 = 0x10
 }
 
+/// The EQ choice a user made: one of the firmware presets, or a custom curve.
+///
+/// Nommo firmware forgets EQ settings across restarts, so Nommac stores the
+/// choice and writes it back when the speakers reappear. See `EQStore` for
+/// how it is stored.
+struct NommoEQSelection: Equatable, Codable {
+    var presetRawValue: UInt8
+    var bandGainsDecibels: [Int]
+
+    var isCustom: Bool { presetRawValue == NommoPreset.customRawValue }
+
+    /// Guards the firmware against a selection stored by a different build, or
+    /// a hand-edited preferences file.
+    var isWellFormed: Bool {
+        bandGainsDecibels.count == NommoDevice.bandCount
+            && bandGainsDecibels.allSatisfy(NommoDevice.gainRange.contains)
+    }
+
+    /// Whether the firmware needs this selection written back, given what the
+    /// speakers report just after reconnecting.
+    ///
+    /// A custom curve is verifiable: the bands read back, so an identical curve
+    /// is left alone. A named preset is not — a power-cycled Nommo reports a
+    /// stale preset number (`movie (2)` here) while its bands read flat, so a
+    /// preset that appears to be set may not be applied at all, and is
+    /// reasserted rather than trusted.
+    func needsRestoring(given state: NommoState) -> Bool {
+        guard isCustom else { return true }
+        return state.presetRawValue != presetRawValue
+            || state.bandGainsDecibels != bandGainsDecibels
+    }
+}
+
 enum NommoDeviceError: Error {
     case disconnected
     case transportFailure(IOReturn)
@@ -44,6 +77,7 @@ final class NommoDevice: @unchecked Sendable {
     static let bandCount = 10
     static let bandLabels = ["31", "63", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"]
     static let flatBandByte: UInt8 = 0x0C  // 0 dB, one unit per dB
+    static let gainRange = -12 ... 12
 
     private let queue = DispatchQueue(label: "com.pablopunk.nommac.hid")
     private let manager: IOHIDManager
@@ -238,6 +272,29 @@ final class NommoDevice: @unchecked Sendable {
                 UInt8(clamping: $0 + Int(NommoDevice.flatBandByte))
             }
             _ = try run(0x08, 0x04, [0] + bytes)
+        }
+
+        /// Writes a stored selection back: a named preset reloads its own
+        /// curve, a custom selection restores the individual band gains.
+        func applyEQ(_ selection: NommoEQSelection) throws {
+            if let preset = NommoPreset(rawValue: selection.presetRawValue) {
+                try setPreset(preset)
+            } else {
+                try setBands(selection.bandGainsDecibels)
+            }
+        }
+
+        /// Reads the device state, first writing `selection` back when the
+        /// firmware has forgotten it, and reading again so the returned state
+        /// is what the speakers actually ended up with. Pass nil to read
+        /// without ever writing.
+        func readState(restoring selection: NommoEQSelection?) throws -> NommoState {
+            let state = try readState()
+            guard let selection, selection.isWellFormed,
+                  selection.needsRestoring(given: state)
+            else { return state }
+            try applyEQ(selection)
+            return try readState()
         }
     }
 }
