@@ -10,14 +10,21 @@ enum NommacCLI {
       status                     show all settings
       eco [on|off]               get/set power saving (auto sleep)
       sleep [<minutes>|off]      get/set idle sleep timeout
-      eq [show|flat|min|<g1..g10>]
+      eq [show|flat|min|forget|<g1..g10>]
                                  get/set 10-band EQ gains in dB (-12..12)
                                  min puts every band at the -12 dB floor
+                                 forget drops the stored curve, leaving
+                                 the speakers as they are
       preset [flat|game|movie|music|0-3]
                                  get/set EQ preset (resets bands to flat)
 
     run with no arguments outside a terminal to start the menu-bar app
+
+    eq and preset choices are stored and written back when the speakers
+    reconnect, because the firmware forgets them when they power off
     """
+
+    static let eqStore = EQStore()
 
     static func run(_ arguments: [String]) -> Int32 {
         guard let command = arguments.first, !["-h", "--help", "help"].contains(command) else {
@@ -40,7 +47,20 @@ enum NommacCLI {
         let message: String
     }
 
+    /// The one EQ command that never talks to the speakers, so it works with
+    /// them switched off — which is exactly when you might want to stop a
+    /// stored curve coming back.
+    static func isForgetCommand(_ command: String, _ arguments: [String]) -> Bool {
+        command == "eq" && arguments == ["forget"]
+    }
+
     private static func dispatch(command: String, arguments: [String]) throws {
+        if isForgetCommand(command, arguments) {
+            eqStore.selection = nil
+            print("cleared the stored eq (the speakers keep their current curve)")
+            return
+        }
+
         let device = NommoDevice()
         try device.performBlocking { transactor in
             switch command {
@@ -61,9 +81,16 @@ enum NommacCLI {
         print("eco (power saving): \(state.ecoEnabled ? "on" : "off")")
         print("sleep timeout:      \(timeout)")
         print("eq preset:          \(presetName(state.presetRawValue)) (\(state.presetRawValue))")
+        print("eq stored:          \(describe(eqStore.selection))")
         print("eq bands (dB):")
         print("  " + NommoDevice.bandLabels.map { pad($0) }.joined(separator: "  "))
         print("  " + state.bandGainsDecibels.map { pad(formatGain($0)) }.joined(separator: "  "))
+    }
+
+    private static func describe(_ selection: NommoEQSelection?) -> String {
+        guard let selection else { return "nothing stored yet" }
+        guard selection.isCustom else { return presetName(selection.presetRawValue) }
+        return "custom " + selection.bandGainsDecibels.map(formatGain).joined(separator: " ")
     }
 
     private static func runEco(_ transactor: NommoDevice.Transactor, _ arguments: [String]) throws {
@@ -102,10 +129,16 @@ enum NommacCLI {
         let gains: [Int]
         switch arguments {
         case ["flat"]: gains = [Int](repeating: 0, count: NommoDevice.bandCount)
-        case ["min"]: gains = [Int](repeating: -12, count: NommoDevice.bandCount)
+        case ["min"]:
+            gains = [Int](
+                repeating: NommoDevice.gainRange.lowerBound, count: NommoDevice.bandCount
+            )
         default: gains = try parseGains(arguments)
         }
         try transactor.setBands(gains)
+        eqStore.store(
+            presetRawValue: NommoPreset.customRawValue, bandGainsDecibels: gains
+        )
         print("eq set: " + gains.map(formatGain).joined(separator: " "))
     }
 
@@ -122,6 +155,10 @@ enum NommacCLI {
             throw CLIError(message: "preset must be flat/game/movie/music or 0-3")
         }
         try transactor.setPreset(preset)
+        eqStore.store(
+            presetRawValue: preset.rawValue,
+            bandGainsDecibels: [Int](repeating: 0, count: NommoDevice.bandCount)
+        )
         print("preset set to \(preset.title.lowercased()) (\(preset.rawValue))")
     }
 
@@ -134,8 +171,11 @@ enum NommacCLI {
             throw CLIError(message: "expected \(NommoDevice.bandCount) band gains, got \(values.count)")
         }
         return try values.map {
-            guard let gain = Int($0), (-12 ... 12).contains(gain) else {
-                throw CLIError(message: "gain '\($0)' out of range -12..12 dB")
+            guard let gain = Int($0), NommoDevice.gainRange.contains(gain) else {
+                throw CLIError(
+                    message: "gain '\($0)' out of range "
+                        + "\(NommoDevice.gainRange.lowerBound)..\(NommoDevice.gainRange.upperBound) dB"
+                )
             }
             return gain
         }

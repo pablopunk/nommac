@@ -6,6 +6,7 @@ import ServiceManagement
 @MainActor
 final class NommacModel {
     private let device = NommoDevice()
+    private let eqStore = EQStore()
 
     private(set) var isConnected = false
     private(set) var isLaunchAtLoginEnabled = false
@@ -28,27 +29,52 @@ final class NommacModel {
         device.onConnectionChange = { [weak self] connected in
             guard let self else { return }
             isConnected = connected
-            if connected { refresh() }
+            if connected { restoreAndRefresh() }
         }
     }
 
+    /// Reads the device state into the UI without writing to the speakers.
     func refresh() {
+        read(retriesLeft: 2, restoring: nil)
+    }
+
+    /// The speakers have just appeared, which means the firmware has dropped
+    /// the EQ: write the stored choice back, then read what they ended up
+    /// with. This is the only path that restores.
+    private func restoreAndRefresh() {
+        read(retriesLeft: 2, restoring: eqStore.selection)
+    }
+
+    /// The HID interface can appear a moment before the firmware will answer
+    /// feature reports, and that is exactly when the EQ needs restoring, so a
+    /// transport failure here is retried before it is reported.
+    private func read(retriesLeft: Int, restoring stored: NommoEQSelection?) {
         device.perform { transactor in
-            try transactor.readState()
+            try transactor.readState(restoring: stored)
         } completion: { [weak self] result in
             guard let self else { return }
             switch result {
             case .success(let state):
-                isConnected = true
-                ecoEnabled = state.ecoEnabled
-                sleepTimeoutMinutes = state.sleepTimeoutSeconds / 60
-                presetRawValue = state.presetRawValue
-                bandGainsDecibels = state.bandGainsDecibels
-                lastErrorDescription = nil
+                publish(state)
             case .failure(let error):
-                recordFailure(error)
+                if retriesLeft > 0, case NommoDeviceError.transportFailure = error {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                        self?.read(retriesLeft: retriesLeft - 1, restoring: stored)
+                    }
+                } else {
+                    recordFailure(error)
+                }
             }
         }
+    }
+
+    private func publish(_ state: NommoState) {
+        isConnected = true
+        ecoEnabled = state.ecoEnabled
+        sleepTimeoutMinutes = state.sleepTimeoutSeconds / 60
+        presetRawValue = state.presetRawValue
+        bandGainsDecibels = state.bandGainsDecibels
+        lastErrorDescription = nil
     }
 
     func setEco(_ enabled: Bool) {
@@ -64,25 +90,30 @@ final class NommacModel {
     func selectPreset(_ preset: NommoPreset) {
         presetRawValue = preset.rawValue
         bandGainsDecibels = [Int](repeating: 0, count: NommoDevice.bandCount)
+        storeEQSelection()
         write { try $0.setPreset(preset) }
     }
 
     /// App-side preset: every band at the −12 dB floor.
     func selectMinimumPreset() {
         presetRawValue = NommoPreset.customRawValue
-        let gains = [Int](repeating: -12, count: NommoDevice.bandCount)
+        let gains = [Int](
+            repeating: NommoDevice.gainRange.lowerBound, count: NommoDevice.bandCount
+        )
         bandGainsDecibels = gains
+        storeEQSelection()
         write { try $0.setBands(gains) }
     }
 
     var isMinimumPreset: Bool {
-        isCustomPreset && bandGainsDecibels.allSatisfy { $0 == -12 }
+        isCustomPreset && bandGainsDecibels.allSatisfy { $0 == NommoDevice.gainRange.lowerBound }
     }
 
     func setBandGain(index: Int, decibels: Int) {
         guard bandGainsDecibels.indices.contains(index) else { return }
         bandGainsDecibels[index] = decibels
         presetRawValue = NommoPreset.customRawValue
+        storeEQSelection()
         let gains = bandGainsDecibels
         debounce(&pendingBandsWrite) { [self] in
             write { try $0.setBands(gains) }
@@ -99,8 +130,11 @@ final class NommacModel {
     func applyGroupEQDrag(deltaDecibels: Int) {
         guard let groupDragBaseline else { return }
         presetRawValue = NommoPreset.customRawValue
-        let gains = groupDragBaseline.map { ($0 + deltaDecibels).clamped(to: -12 ... 12) }
+        let gains = groupDragBaseline.map {
+            ($0 + deltaDecibels).clamped(to: NommoDevice.gainRange)
+        }
         bandGainsDecibels = gains
+        storeEQSelection()
         debounce(&pendingBandsWrite) { [self] in
             write { try $0.setBands(gains) }
         }
@@ -121,6 +155,14 @@ final class NommacModel {
             lastErrorDescription = error.localizedDescription
         }
         synchronizeLaunchAtLoginState()
+    }
+
+    /// Stores the user's EQ choice immediately, before the debounced write,
+    /// so a restore running in the meantime can't revert it.
+    private func storeEQSelection() {
+        eqStore.store(
+            presetRawValue: presetRawValue, bandGainsDecibels: bandGainsDecibels
+        )
     }
 
     private func write(_ work: @escaping @Sendable (NommoDevice.Transactor) throws -> Void) {
